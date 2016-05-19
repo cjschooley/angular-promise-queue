@@ -2,6 +2,7 @@ angular.module('promise-queue', [])
   .factory('PromiseQueue', ['$q', function($q) {
 
     var PromiseQueue = function (){
+      this._running = false;
       this._queue = [];
       this._pause = false;
     };
@@ -12,7 +13,7 @@ angular.module('promise-queue', [])
      * @param {function} func function OR array of functions
      * @returns {undefined}
      */
-    PromiseQueue.prototype.add = function(func, instant) {
+    PromiseQueue.prototype.add = function(func, instant, autostart) {
       instant = instant || false;
 
       if(Array.isArray(func)) {
@@ -29,8 +30,20 @@ angular.module('promise-queue', [])
         throw new Error('No functions provided');
       }
 
+      if (autostart && !this.isRunning()) this.start();
+
       return this;
 
+    };
+
+    /**
+     * Check whether the queue is currently being processed.
+     *
+     * @name PromiseQueue#isRunning
+     * @returns {undefined}
+     */
+    PromiseQueue.prototype.isRunning = function() {
+      return this._running;
     };
 
     /**
@@ -114,8 +127,10 @@ angular.module('promise-queue', [])
     PromiseQueue.prototype.next = function() {
       var self = this;
 
-      if(self._pause === true) return;
-      if(self._queue.length === 0) return;
+      if(self._pause === true) {self._running = false; return;}
+      if(self._queue.length === 0) {self._running = false; return;}
+
+      self._running = true;
 
       var func = self._queue.shift();
 
